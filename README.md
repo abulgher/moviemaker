@@ -4,7 +4,7 @@
 ## Description
 Yet another tool to put together images to make a video you can play in the web-browser. 
 The piece of software has been developed inside the microscopy group with the main goal of realizing short video clip using FIB/SEM images in order to show, for example, the production steps of lamellas, micro-pillars and other interesting preparation.
-Being ad hoc for this purpose, it has very little capabilities and it doesn't offer the wide range of possibilities other common video-editing tools normally have.
+Being *ad-hoc* for this purpose, it has very little capabilities and it doesn't offer the wide range of possibilities other common video-editing tools normally have.
 
 ## What **Moviemaker** does
 **Moviemaker** does three things:
