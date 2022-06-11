@@ -8,9 +8,9 @@ Being *ad-hoc* for this purpose, it has very little capabilities and it doesn't 
 
 ## What **Moviemaker** does
 **Moviemaker** does three things:
-	1. **Convert all images contained in a folder** and respecting a given filtering string in a more convient format for video rendering. Normally SEM pictures are saved in **TIFF** format (8 or 24bit grey levels), while for the video making purpose is either **PNG** or **JPEG** color a much better choice. The user can select the output format from a list and choose the output folder.
-	2. **Generate a video from a sequence of images**. The user can select a folder and a filter to be applied to the image list. Moreover the FPS (*frame per second*) parameter can also be selected. FPS=1 means that each image will last exactly 1 second in the video. FPS=4 means that each image will last only 0.25 s. The output format is mp4 and cannot be changed.
-	3- **Concatenate videos**. The user can select two input video clip to generate a third one in which the second is directly appended to the first one. No clipping, no transitions possible. Sorry.
+1. **Convert all images contained in a folder** and respecting a given filtering string in a more convient format for video rendering. Normally SEM pictures are saved in **TIFF** format (8 or 24bit grey levels), while for the video making purpose is either **PNG** or **JPEG** color a much better choice. The user can select the output format from a list and choose the output folder.
+2. **Generate a video from a sequence of images**. The user can select a folder and a filter to be applied to the image list. Moreover the FPS (*frame per second*) parameter can also be selected. FPS=1 means that each image will last exactly 1 second in the video. FPS=4 means that each image will last only 0.25 s. The output format is mp4 and cannot be changed.
+3. **Concatenate videos**. The user can select two input video clip to generate a third one in which the second is directly appended to the first one. No clipping, no transitions possible. Sorry.
 	
 **Moviemaker** has a GUI structured with three tabs, one for each of the tasks described above. In each tab, the user can provide the required information and then click the start button to initiate the task. Each task is executed in a parallel thread so that the GUI will remain responsive the whole time and information messages will be displayed in the text area along with a progress bar. Even if technically possible, there is no stop or cancel button implemented for the moment. 
 
