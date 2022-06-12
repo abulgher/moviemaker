@@ -5,23 +5,26 @@ Created on Mon Jun  6 14:55:38 2022
 @author: elog-admin
 """
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from PyQt5 import QtCore
+from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow
+
 Signal = QtCore.pyqtSignal
 Slot = QtCore.pyqtSlot
-from moviemaker_ui import Ui_MainWindow
-import logging
 import ctypes
-import sys
-from pathlib import Path
-from PIL import Image, UnidentifiedImageError
-import moviepy.video.io.ImageSequenceClip
-import moviepy.video.VideoClip
-import moviepy.video.io.VideoFileClip
-import moviepy.video.compositing.concatenate
-import time
+import logging
 import random
+import sys
+import time
+from pathlib import Path
+
+import moviepy.video.compositing.concatenate
+import moviepy.video.io.ImageSequenceClip
+import moviepy.video.io.VideoFileClip
+import moviepy.video.VideoClip
+from PIL import Image, UnidentifiedImageError
 from proglog import TqdmProgressBarLogger
+
+from moviemaker_ui import Ui_MainWindow
 
 log = logging.getLogger(__name__)
 
