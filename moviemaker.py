@@ -5,7 +5,7 @@ Created on Mon Jun  6 14:55:38 2022
 @author: elog-admin
 """
 
-from PyQt5.QtWidgets import  QApplication, QMainWindow, QFileDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from PyQt5 import QtCore
 Signal = QtCore.pyqtSignal
 Slot = QtCore.pyqtSlot
@@ -14,12 +14,11 @@ import logging
 import ctypes
 import sys
 from pathlib import Path
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 import moviepy.video.io.ImageSequenceClip
 import moviepy.video.VideoClip
 import moviepy.video.io.VideoFileClip
 import moviepy.video.compositing.concatenate
-import shutil
 import time
 import random
 from proglog import TqdmProgressBarLogger
@@ -30,38 +29,148 @@ LEVELS = (logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR,
           logging.CRITICAL)
 
 class Signaller(QtCore.QObject):
+    """
+    A sub-class of QObject to contain a signal
+    
+    Only QObejct derived instances are allowed to have a signal, so if you want to have a no
+    QtObject to emit a signal, you have to add a Signaller like this to its attributes.
+    
+    This specific signaller contains only one Qt Signal emitting a formatted string a logging.LogRecord
+    and it is used to establish a communication between a the logging module and a PlainText object in a 
+    QtWindow.
+    
+    """
+
     signal = Signal(str, logging.LogRecord)
     
-class PrologSignaller(QtCore.QObject):
+class ProglogSignaller(QtCore.QObject):
+    """
+    A sub-class of QObject to contain a signal
+    
+    Only QObejct derived instances are allowed to have a signal, so if you want to have a no QtObject
+    to emit a signal, you have to add a Signaller like this to its attributes.
+    
+    This specific signaller contains two Qt Signals:
+        - signal_max --> maximum value of a progress bar
+        - signal_progress --> current index of a progress bar
+        
+    This specific signaller is used to establish a connection between a ProglogSignaller 
+    and a QProgressBar.
+    
+    """
+    
     signal_max = Signal(int)
     signal_progress = Signal(int)
     
 class QtHandler(logging.Handler):
+    """
+    A sub-class of the logging.Handler
+    
+    It incorporates a Signaller to be able to emit a Qt Signal.
+    
+    """
     
     def __init__(self, slotfunc, *args, **kwargs):
+        """
+        Constructor of QtHandler
+
+        Parameters
+        ----------
+        slotfunc : CALLABLE
+            The slot function which the Signaller.signal is connected.
+        *args : positional arguments
+            All other positional arguments to be passed to the parent constructor.
+        **kwargs : keyword arguments
+            All keywork arguments to be passed to the parent constructor.
+
+        Returns
+        -------
+        None.
+
+        """
+        
         super().__init__(*args, **kwargs)
         self.signaller = Signaller()
         self.signaller.signal.connect(slotfunc)
         
     def emit(self, record):
+        """Emit the signaller signal containing the formatted string and the logging.Record."""
+        
         s = self.format(record)
         self.signaller.signal.emit(s, record)
         
 class MyBarLogger(TqdmProgressBarLogger):
+    """
+    A sub-class of the TqdmProgressBarLogger.
+    
+    It overloads the bars_callback method and has the ProglogSignaller with the 
+    two signals to control QProgressBar
+    
+    """
     
     def __init__(self, slotfunc_max, slotfunc_progress, *args, **kawrgs):
+        """
+        
+
+        Parameters
+        ----------
+        slotfunc_max : CALLABLE
+            Slot function to connect the maximum of the Proglog maximum index to
+            the QProgressBar maximum value.
+        slotfunc_progress : CALLABLE
+            Slot function to connect the current index of the Proglog bar with the 
+            QProgressBar value.
+        *args : positional arguments
+            other positional argumets to be passed to the parent constructor.
+        **kawrgs : keyword arguments
+            other keyword arguments to be passed to the parent constructor.
+
+        Returns
+        -------
+        None.
+
+        """
+        
         super().__init__(*args, **kawrgs)
-        self.signaller = PrologSignaller()
+        self.signaller = ProglogSignaller()
         self.signaller.signal_max.connect(slotfunc_max)
         self.signaller.signal_progress.connect(slotfunc_progress)
         
     def emit_max(self, maxi):
+        """Emit the signal with the maximum index of the proglog progress bar."""
+        
         self.signaller.signal_max.emit(maxi)
         
     def emit_progress(self, prog):
+        """Emit the signal with the current index of the proglog progress bar."""
+        
         self.signaller.signal_progress.emit(prog)
     
     def bars_callback(self, bar, attr, value, old_value):
+        """
+        Overload ot the bars_callback
+        This method is called everytime any value of a bar is changed.
+        
+        We will only care about the bar named 't'.
+        We will call emit_max when the attribute is total.
+        We will call emit_progress when the attribute is index
+
+        Parameters
+        ----------
+        bar : STRING
+            The name of the bar the.
+        attr : STRING
+            The name of the attribute being changed.
+        value : NUMERIC
+            The new value of the attribute.
+        old_value : NUMERIC
+            The previos value of the attribute.
+
+        Returns
+        -------
+        None.
+
+        """
         if bar == 't':
             if attr == 'index':
                 self.emit_progress(value)
@@ -72,11 +181,25 @@ class MyBarLogger(TqdmProgressBarLogger):
         
 
 def ctname():
+    """
+    Function to return the current QThread name
+
+    Returns
+    -------
+    STRING
+        The name of the current QThread.
+
+    """
     return QtCore.QThread.currentThread().objectName()
 
 
 class Worker(QtCore.QObject):
+    """
+    A Worker class derived from QObject.
     
+    This class will be performing the 
+    
+    """
     
     # signal to confirm that the worker did its job
     work_done = Signal(bool, name='work_done')
@@ -90,22 +213,27 @@ class Worker(QtCore.QObject):
         super().__init__(parent=parent)
     
     def get_imagelist(self, input_path, file_filter, display = False, as_path=True):
-        extra = {'qThreadName': ctname()}
         if as_path:
-            image_list = sorted( [img for img in Path(input_path).glob(file_filter)])
+            image_list = sorted( list(Path(input_path).glob(file_filter)) )
+            #image_list = sorted( [img for img in Path(input_path).glob(file_filter)])
         else:
             image_list = sorted( [str(img) for img in Path(input_path).glob(file_filter)])
         if display:
-            log.info('Found a total of {} images in the input folder matchign the filter'.format(len(image_list)),extra=extra)
+            log.info('Found a total of %s images in the input folder matchign the filter',
+                     len(image_list),extra=self.extra)
             for img in image_list:
-                log.info(img.name, extra=extra)
+                log.info(img.name, extra=self.extra)
         return image_list
 
 class StupidWorker(Worker):
+    def __init__(self, parent=None):
+        self.extra = ''
+        super().__init__(parent=parent)
+    
     @Slot()
     def start(self):
-        extra = {'qThreadName': ctname() }
-        log.debug('Started work', extra=extra)
+        self.extra = {'qThreadName': ctname() }
+        log.debug('Started work', extra=self.extra)
         i = 1
         # Let the thread run until interrupted. This allows reasonably clean
         # thread termination.
@@ -113,12 +241,19 @@ class StupidWorker(Worker):
             delay = 0.5 + random.random() * 2
             time.sleep(delay)
             level = random.choice(LEVELS)
-            log.log(level, 'Message after delay of %3.1f: %d', delay, i, extra=extra)
+            log.log(level, 'Message after delay of %3.1f: %d', delay, i, extra=self.extra)
             i += 1
 
 
 class ConverterWorker(Worker):
-
+    def __init__(self, parent=None):
+        self.converter_input_folder = ''
+        self.converter_output_folder = ''
+        self.converter_filter = ''
+        self.converter_output_format = ''
+        self.extra = ''
+        self.converter_image_list = []
+        super().__init__(parent=parent)
 
     def update_parameters(self, input_path, file_filter, output_path, output_format):
         self.converter_input_folder = Path(input_path)
@@ -132,17 +267,18 @@ class ConverterWorker(Worker):
         
         start_time = time.time()
         self.extra = {'qThreadName': ctname()}
-        log.debug('Started work {}'.format(self.objectName()), extra=self.extra)
-        log.debug('Input path: {}'.format(str(self.converter_input_folder)), extra=self.extra)
-        log.debug('File filter: {}'.format(self.converter_filter), extra=self.extra)
-        log.debug('Output path: {}'.format(str(self.converter_output_folder)), extra=self.extra)
-        log.debug('Output format: {}'.format(self.converter_output_format), extra=self.extra)
+        # log.debug('Started work {name}',name=self.objectName(), extra=self.extra)
+        # log.debug('Input path: {path}',path=str(self.converter_input_folder), extra=self.extra)
+        # log.debug('File filter: {filter}',filter=self.converter_filter, extra=self.extra)
+        # log.debug('Output path: {path}', path = str(self.converter_output_folder), extra=self.extra)
+        # log.debug('Output format: {form}', form=self.converter_output_format, extra=self.extra)
         
         # make the dest folder
         self.converter_output_folder.mkdir(exist_ok=True)
 
         # get the list of images
-        self.converter_image_list = self.get_imagelist(Path(self.converter_input_folder), self.converter_filter) 
+        self.converter_image_list = self.get_imagelist(Path(self.converter_input_folder), 
+                                                       self.converter_filter) 
         
         # reset progress bar and set its max
         self.how_much_work.emit(len(self.converter_image_list))
@@ -158,19 +294,38 @@ class ConverterWorker(Worker):
                 break            
             outputfilename = Path(str(img.stem)+'.'+self.converter_output_format)
             try:
-                log.info('Converting {} in {}'.format(str(img.name), self.converter_output_format), extra=self.extra)
+                log.info('Converting %s in %s',img.name, 
+                         self.converter_output_format, 
+                         extra=self.extra)
                 im = Image.open(img)
                 im = im.convert('RGB')
                 im.save(self.converter_output_folder / outputfilename, self.converter_output_format)
-            except Exception as e:
+            except FileNotFoundError as e:
+                log.error('File %s not found. Skipping it', str(img.name),extra=self.extra)
+                log.exception(e, extra=self.extra)
+            except UnidentifiedImageError as e:
+                log.error('The image %s can\'t be opened and identified. Skipping it', str(img.name),
+                          extra=self.extra)
+                log.exception(e, extra=self.extra)
+            except (ValueError, TypeError) as e:
                 log.exception(e, extra=self.extra)
             self.work_progress.emit(i)
             i += 1
         self.work_done.emit(True)
         delta_time = time.time() - start_time
-        log.info('Conversion of {} images finished in {:.3f} seconds'.format(len(self.converter_image_list), delta_time), extra=self.extra)
+        log.info('Conversion of %s images finished in %.3f seconds',
+                 len(self.converter_image_list), delta_time, extra=self.extra)
         
 class SequenceWorker(Worker):
+    def __init__(self, parent=None):
+        self.sequence_input_folder = ''
+        self.sequence_file_filter = ''
+        self.sequence_output_file = ''
+        self.sequence_fps = 4
+        self.extra = ''
+        self.sequence_proglog_bar= ''
+        self.parent=parent
+        super().__init__(parent=parent)
     
     def update_parameters(self, input_path, file_filter, output_file, fps):
         self.sequence_input_folder = Path(input_path)
@@ -198,19 +353,29 @@ class SequenceWorker(Worker):
         try:
             clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(image_list, fps=self.sequence_fps)
             self.work_progress.emit(1)        
-            log.info('Generating output file {}'.format(self.sequence_output_file.name),extra=self.extra)
+            log.info('Generating output file %s', self.sequence_output_file.name,extra=self.extra)
             log.info('It may take several minutes', extra=self.extra)
             clip.write_videofile(filename=str(self.sequence_output_file), logger=self.sequence_proglog_bar)
-            log.info('Writing output file {} on disk'.format(self.sequence_output_file.name),extra=self.extra)
-        except Exception as e:
+            log.info('Writing output file %s on disk',self.sequence_output_file.name,
+                     extra=self.extra)
+        except (ValueError, KeyError, Exception) as e:
             log.exception(e,extra=self.extra)
         self.work_done.emit(True)
         delta_time = time.time() - start_time
-        log.info('Generation of video clip finished {:.3f} seconds'.format(delta_time), extra=self.extra)        
+        log.info('Generation of video clip finished %.3f seconds', delta_time, 
+                 extra=self.extra)        
        
        
 class JoinWorker(Worker):
-    
+    def __init__(self, parent=None):
+        self.parent=parent
+        self.input_file1  = ''
+        self.input_file2 = ''
+        self.output_file = ''
+        self.extra = ''
+        self.join_proglog_bar = ''
+        super().__init__(parent=parent)
+        
     def update_parameters(self, input_file1, input_file2, output_file):
         self.input_file1 = Path(input_file1)
         self.input_file2 = Path(input_file2)
@@ -227,11 +392,11 @@ class JoinWorker(Worker):
         self.how_much_work.emit(3)
         self.work_progress.emit(0)
         try:
-            log.info('Loading video {}'.format(self.input_file1.name), extra=self.extra)
+            log.info('Loading video %s', self.input_file1.name, extra=self.extra)
             clip1 = moviepy.video.io.VideoFileClip.VideoFileClip(str(self.input_file1))
             self.work_progress.emit(1)
             
-            log.info('Loading video {}'.format(self.input_file2.name), extra=self.extra)
+            log.info('Loading video %s',self.input_file2.name, extra=self.extra)
             clip2 = moviepy.video.io.VideoFileClip.VideoFileClip(str(self.input_file2))
             self.work_progress.emit(2)
             log.info('Concatenating the input videos', extra=self.extra)
@@ -239,13 +404,13 @@ class JoinWorker(Worker):
             self.work_progress.emit(3)
             
             self.work_progress.emit(0)
-            log.info('Writing the output file {}'.format(self.output_file.name), extra=self.extra)
+            log.info('Writing the output file %s', self.output_file.name, extra=self.extra)
             outclip.write_videofile(str(self.output_file), logger=self.join_proglog_bar)
-        except Exception as e:
+        except (ValueError, OSError) as e:
             log.exception(e, extra=self.extra)
         self.work_done.emit(True)
         delta_time = time.time() - start_time
-        log.info('Joining of video clips finished {:.3f} seconds'.format(delta_time), extra=self.extra)   
+        log.info('Joining of video clips finished %.3f seconds', delta_time, extra=self.extra)   
         
 class MovieMakerWindow(QMainWindow, Ui_MainWindow):
     
@@ -334,11 +499,11 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
                 thread.quit()
                 thread.wait()
             else:
-                log.debug('Thread {} was dead already'.format(thread.objectName()), extra=self.extra)
+                log.debug('Thread %s was dead already', key, extra=self.extra)
                 
     def force_quit(self):
-        # TODO: don't like this implementation
-        for key, thread in self.worker_threads.items():
+        #TODO: don't like this implementation
+        for thread in self.worker_threads.values() :
             if thread.isRunning():
                 thread.quit()
                 thread.wait()
@@ -352,9 +517,7 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
         
     def connectSignalsSlot(self):   
         self.app.aboutToQuit.connect(self.force_quit)
-        self.converter_start_button.clicked.connect(self.enable_inputs)
     
-
     
     def converter_open_input_folder(self):
         directory = self.converter_input_path_text.text()
@@ -371,8 +534,8 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
             directory = '.'
         returnpath = QFileDialog.getExistingDirectory(self, 'Output folder', directory=directory)
         if returnpath:
-             self.converter_output_path_text.setText(returnpath)
-             self.converter_validate_start()   
+            self.converter_output_path_text.setText(returnpath)
+            self.converter_validate_start()   
 
     def converter_test_filter(self):
         self.sequence_get_imagelist(Path(self.converter_input_path_text.text()),
@@ -470,9 +633,10 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
             self.sequence_validate_start()
     
     def sequence_get_imagelist(self, folder, filefilter, display = False):
-        image_list = sorted([img for img in folder.glob(filefilter)])
+        image_list = sorted(list(folder.glob(filefilter)))
         if display:
-            log.info('Found a total of {} images in the input folder matching the filter'.format(len(image_list)),extra=self.extra)
+            log.info('Found a total of %s images in the input folder matching the filter', len(image_list),
+                     extra=self.extra)
             for img in image_list:
                 log.info(img.name,extra=self.extra)
         return image_list
@@ -486,55 +650,6 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
     def enable_inputs(self, status=True):
         self.tab_moviemaker.setEnabled(status)
     
-    def sequence_start_thread(self):
-        self.enable_inputs(False)
-        self.sequence_input_folder = Path(self.sequence_image_path_text.text())
-        self.sequence_filter = self.sequence_image_filter_text.text()
-        self.sequence_output_filename = Path(self.sequence_output_filename_text.text())
-        self.sequence_temp_folder = Path(self.sequence_temporary_folder_text.text())
-        self.sequence_fps = self.sequence_fpb_spin.value()
-        self.sequence_preserve_temp = self.sequence_preserve_tempfiles_checkbok.checkState()
-        
-        # make the tmp folder and don't complain if it exists already
-        self.sequence_temp_folder.mkdir(exist_ok=True)
-        
-        # get the image list
-        self.sequence_image_list = self.sequence_get_imagelist(self.sequence_input_folder,self.sequence_filter, display=False)
-        
-        
-        # convert in png if needed, otherwise just copy to the tmp folder
-        for img in self.sequence_image_list:
-            
-            if img.suffix != '.png':
-                outputfile = Path(str(img.stem) + '.png')
-                try:
-                    log.info('Converting image {} in png'.format(str(img.name)),extra=self.extra)
-                    im = Image.open(img)
-                    im = im.convert('RGB')
-                    im.save( self.sequence_temp_folder / outputfile, 'PNG')
-                except Exception as e:
-                    log.exception(e,extra=self.extra)
-            else:
-                log.info("Copying image {} in temporary folder".format(str(img.name)),extra=self.extra)
-                dest = self.sequence_temp_folder / img.name
-                shutil.copy(img, dest)
-
-        try:                    
-            clip = moviepy.video.io.ImageSequenceClip.ImageSequenceClip(str(self.sequence_temp_folder), fps=self.sequence_fps)
-        except Exception as e:
-            log.exception(e, extra=self.extra)
-        try:
-            bar = MyBarLogger()
-            log.info('Writing output file {}'.format(self.sequence_output_filename.name),extra=self.extra)
-            clip.write_videofile(filename=str(self.sequence_output_filename), logger=bar)
-        except Exception as e:
-            log.exception(e,extra=self.extra)
-            
-        if not self.sequence_preserve_temp :
-            log.info('Removing temporary folder',extra=self.extra)
-            shutil.rmtree(str(self.sequence_temp_folder))
-            
-        self.enable_inputs(True)
         
     
     def join_start(self):
