@@ -12,7 +12,6 @@ Signal = QtCore.pyqtSignal
 Slot = QtCore.pyqtSlot
 import ctypes
 import logging
-import random
 import sys
 import time
 from pathlib import Path
@@ -33,7 +32,7 @@ LEVELS = (logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR,
 
 class Signaller(QtCore.QObject):
     """
-    A sub-class of QObject to contain a signal
+    A sub-class of QObject to contain a signal.
     
     Only QObejct derived instances are allowed to have a signal, so if you want to have a no
     QtObject to emit a signal, you have to add a Signaller like this to its attributes.
@@ -48,7 +47,7 @@ class Signaller(QtCore.QObject):
     
 class ProglogSignaller(QtCore.QObject):
     """
-    A sub-class of QObject to contain a signal
+    A sub-class of QObject to contain a signal.
     
     Only QObejct derived instances are allowed to have a signal, so if you want to have a no QtObject
     to emit a signal, you have to add a Signaller like this to its attributes.
@@ -67,7 +66,7 @@ class ProglogSignaller(QtCore.QObject):
     
 class QtHandler(logging.Handler):
     """
-    A sub-class of the logging.Handler
+    A sub-class of the logging.Handler.
     
     It incorporates a Signaller to be able to emit a Qt Signal.
     
@@ -75,7 +74,7 @@ class QtHandler(logging.Handler):
     
     def __init__(self, slotfunc, *args, **kwargs):
         """
-        Constructor of QtHandler
+        Build an instance of QtHandler.
 
         Parameters
         ----------
@@ -90,15 +89,13 @@ class QtHandler(logging.Handler):
         -------
         None.
 
-        """
-        
+        """  
         super().__init__(*args, **kwargs)
         self.signaller = Signaller()
         self.signaller.signal.connect(slotfunc)
         
     def emit(self, record):
-        """Emit the signaller signal containing the formatted string and the logging.Record."""
-        
+        """Emit the signaller signal containing the formatted string and the logging.Record.""" 
         s = self.format(record)
         self.signaller.signal.emit(s, record)
         
@@ -113,8 +110,8 @@ class MyBarLogger(TqdmProgressBarLogger):
     
     def __init__(self, slotfunc_max, slotfunc_progress, *args, **kawrgs):
         """
+        Build an instance of MyBarLogger.
         
-
         Parameters
         ----------
         slotfunc_max : CALLABLE
@@ -132,26 +129,24 @@ class MyBarLogger(TqdmProgressBarLogger):
         -------
         None.
 
-        """
-        
+        """   
         super().__init__(*args, **kawrgs)
         self.signaller = ProglogSignaller()
         self.signaller.signal_max.connect(slotfunc_max)
         self.signaller.signal_progress.connect(slotfunc_progress)
         
     def emit_max(self, maxi):
-        """Emit the signal with the maximum index of the proglog progress bar."""
-        
+        """Emit the signal with the maximum index of the proglog progress bar."""      
         self.signaller.signal_max.emit(maxi)
         
     def emit_progress(self, prog):
-        """Emit the signal with the current index of the proglog progress bar."""
-        
+        """Emit the signal with the current index of the proglog progress bar."""       
         self.signaller.signal_progress.emit(prog)
     
     def bars_callback(self, bar, attr, value, old_value):
         """
-        Overload ot the bars_callback
+        Overload ot the bars_callback.
+        
         This method is called everytime any value of a bar is changed.
         
         We will only care about the bar named 't'.
@@ -185,7 +180,7 @@ class MyBarLogger(TqdmProgressBarLogger):
 
 def ctname():
     """
-    Function to return the current QThread name
+    Return the current QThread name.
 
     Returns
     -------
@@ -200,7 +195,8 @@ class Worker(QtCore.QObject):
     """
     A Worker class derived from QObject.
     
-    This class will be performing the 
+    This class will be performing the real job. 
+    It will be moved to a separate Thread in order to leave the GUI responsibe
     
     """
     
@@ -212,10 +208,50 @@ class Worker(QtCore.QObject):
     work_progress = Signal(int, name='work_progress')
     
     def __init__(self, parent=None):
+        """
+        Build an instance of a generic worker.
+        
+        It sets its parent and call the super constructor
+
+        Parameters
+        ----------
+        parent : Object, optional
+            The parent object.
+
+        Returns
+        -------
+        None.
+
+        """   
         self.parent = parent
         super().__init__(parent=parent)
     
     def get_imagelist(self, input_path, file_filter, display = False, as_path=True):
+        """
+        Return the image list.
+        
+        Scan the input_path applying the file_filer and returns all matching files
+        in a list.
+
+        Parameters
+        ----------
+        input_path : Path or string representing the input folder
+            DESCRIPTION.
+        file_filter : STRING
+            A wildcard (*,?) file type filter
+        display : BOOL, optional
+            If true, the returned list will be sent to the logger. 
+            The default is False.
+        as_path : BOOL, optional
+            If True the returned list will be containing Path objects instead of strings. 
+            The default is True.
+
+        Returns
+        -------
+        image_list : list of Path objects or strings
+            The list of matching files found in input_path
+
+        """
         if as_path:
             image_list = sorted( list(Path(input_path).glob(file_filter)) )
             #image_list = sorted( [img for img in Path(input_path).glob(file_filter)])
@@ -228,28 +264,28 @@ class Worker(QtCore.QObject):
                 log.info(img.name, extra=self.extra)
         return image_list
 
-class StupidWorker(Worker):
-    def __init__(self, parent=None):
-        self.extra = ''
-        super().__init__(parent=parent)
-    
-    @Slot()
-    def start(self):
-        self.extra = {'qThreadName': ctname() }
-        log.debug('Started work', extra=self.extra)
-        i = 1
-        # Let the thread run until interrupted. This allows reasonably clean
-        # thread termination.
-        while not QtCore.QThread.currentThread().isInterruptionRequested():
-            delay = 0.5 + random.random() * 2
-            time.sleep(delay)
-            level = random.choice(LEVELS)
-            log.log(level, 'Message after delay of %3.1f: %d', delay, i, extra=self.extra)
-            i += 1
-
 
 class ConverterWorker(Worker):
+    """
+    The specialized ConverterWorker.
+    
+    It takes care of converting input images in a more suitable format.
+    """
+    
     def __init__(self, parent=None):
+        """
+        Build an instance of a ConverterWorker.
+
+        Parameters
+        ----------
+        parent : Object, optional
+            The parent object. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
         self.converter_input_folder = ''
         self.converter_output_folder = ''
         self.converter_filter = ''
@@ -259,6 +295,27 @@ class ConverterWorker(Worker):
         super().__init__(parent=parent)
 
     def update_parameters(self, input_path, file_filter, output_path, output_format):
+        """
+        Assign the conversion parameters to the instance members.
+        
+        In normal use, the GUI Thread will call this method transfering the GUI input values
+
+        Parameters
+        ----------
+        input_path : Path or STRING
+            The input folder for the conversion.
+        file_filter : STRING
+            A wildcard pattern to select the images to be converted.
+        output_path : PATH or STRING
+            The output folder for the conversion.
+        output_format : STRING
+            The output format.
+
+        Returns
+        -------
+        None.
+
+        """
         self.converter_input_folder = Path(input_path)
         self.converter_output_folder = Path(output_path)
         self.converter_filter = file_filter
@@ -267,14 +324,23 @@ class ConverterWorker(Worker):
     
     @Slot()
     def start(self):
-        
+        """
+        Start the worker.
+
+        This is a Qt Slot
+
+        Returns
+        -------
+        None.
+
+        """
         start_time = time.time()
         self.extra = {'qThreadName': ctname()}
-        # log.debug('Started work {name}',name=self.objectName(), extra=self.extra)
-        # log.debug('Input path: {path}',path=str(self.converter_input_folder), extra=self.extra)
-        # log.debug('File filter: {filter}',filter=self.converter_filter, extra=self.extra)
-        # log.debug('Output path: {path}', path = str(self.converter_output_folder), extra=self.extra)
-        # log.debug('Output format: {form}', form=self.converter_output_format, extra=self.extra)
+        log.debug('Started work %s', self.objectName(), extra=self.extra)
+        log.debug('Input path: %s',str(self.converter_input_folder), extra=self.extra)
+        log.debug('File filter: %s',self.converter_filter, extra=self.extra)
+        log.debug('Output path: %s', str(self.converter_output_folder), extra=self.extra)
+        log.debug('Output format: %s', self.converter_output_format, extra=self.extra)
         
         # make the dest folder
         self.converter_output_folder.mkdir(exist_ok=True)
@@ -320,17 +386,58 @@ class ConverterWorker(Worker):
                  len(self.converter_image_list), delta_time, extra=self.extra)
         
 class SequenceWorker(Worker):
+    """
+    The specialized SequenceWorker.
+
+    It takes care of transforming a sequence of images in a video clip
+    """
+
     def __init__(self, parent=None):
+        """
+        Build an instance of the SequenceWorker.
+
+        Parameters
+        ----------
+        parent : Object, optional
+            The parent object. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
         self.sequence_input_folder = ''
         self.sequence_file_filter = ''
         self.sequence_output_file = ''
         self.sequence_fps = 4
         self.extra = ''
         self.sequence_proglog_bar= ''
-        self.parent=parent
         super().__init__(parent=parent)
     
     def update_parameters(self, input_path, file_filter, output_file, fps):
+        """
+        Assign the sequence parameters.
+        
+        In normal use, the GUI Thread will call this method transfering the GUI input values
+
+        Parameters
+        ----------
+        input_path : Path-like object or STRING
+            The input folder where the images are located.
+        file_filter : STRING
+            A wild-card filter to select a subset of the input images.
+        output_file :  Path-like object or STRING
+            The name of the output file. It must be a .mp4 file
+            No validation on the extension is performed here since it is already
+            done by the GUI
+        fps : FLOAT
+            Number of frame per seconds.
+
+        Returns
+        -------
+        None.
+
+        """
         self.sequence_input_folder = Path(input_path)
         self.sequence_file_filter = file_filter
         self.sequence_output_file = Path(output_file)
@@ -338,6 +445,22 @@ class SequenceWorker(Worker):
         
     @Slot()
     def start(self):
+        """
+        Start the worker.
+        
+        Here is where the sequence to video conversion is really performed. 
+        A ImageSequenceClip is created with the image list and a VideoClip is then saved.
+        
+        The GUI is updating the ProgressBar thanks to the MyBarLogger interface between Qt 
+        and ProgLog.
+        
+        This is a Qt Slot.
+
+        Returns
+        -------
+        None.
+
+        """
         start_time = time.time()
         self.extra = {'qThreadName': ctname()}
         
@@ -370,7 +493,28 @@ class SequenceWorker(Worker):
        
        
 class JoinWorker(Worker):
+    """
+    The specialized join worker.
+    
+    It is responsible for concatenating two video clips. 
+    
+    No fancy stuff here, no clipping, no transitions, just append one video to the next.
+    """
+    
     def __init__(self, parent=None):
+        """
+        Build an instance of JoinWorker.
+
+        Parameters
+        ----------
+        parent : Object, optional
+            The parent object. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
         self.parent=parent
         self.input_file1  = ''
         self.input_file2 = ''
@@ -380,12 +524,47 @@ class JoinWorker(Worker):
         super().__init__(parent=parent)
         
     def update_parameters(self, input_file1, input_file2, output_file):
+        """
+        Assign the conversion parameters to the instance members.
+        
+        In normal use, the GUI Thread will call this method transfering the GUI input values        
+
+        Parameters
+        ----------
+        input_file1 : Path-like or STRING
+            Path to the first video.
+        input_file2 : Path-like or STRING
+            Path to the second video.
+        output_file : Path-like or STRING
+            Output file full path.
+
+        Returns
+        -------
+        None.
+
+        """
         self.input_file1 = Path(input_file1)
         self.input_file2 = Path(input_file2)
         self.output_file = Path(output_file)
         
     @Slot()
     def start(self):
+        """
+        Start the worker.
+        
+        Here is where the sequence to video conversion is really performed. 
+        Both input files are open as VideoFileClip. The concatenate clip is created and saved. 
+        
+        The GUI is updating the ProgressBar thanks to the MyBarLogger interface between Qt 
+        and ProgLog.
+        
+        This is a Qt Slot.
+
+        Returns
+        -------
+        None.
+
+        """
         start_time = time.time()
         self.extra = {'qThreadName': ctname()}
         
@@ -416,7 +595,15 @@ class JoinWorker(Worker):
         log.info('Joining of video clips finished %.3f seconds', delta_time, extra=self.extra)   
         
 class MovieMakerWindow(QMainWindow, Ui_MainWindow):
+    """
+    MovieMaker main window.
     
+    This is a subclass of QMainWindow and of the specific Ui_MainWindow generated 
+    via the QtDesigner.
+    
+    """
+    
+    # Used to have different colors for each logging level.
     COLORS = {
         logging.DEBUG: 'black',
         logging.INFO: 'blue',
@@ -427,6 +614,19 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
        
     
     def __init__(self, app):
+        """
+        Build a MovieMakerWindow instance.
+
+        Parameters
+        ----------
+        app : QApplication
+            The application reference.
+
+        Returns
+        -------
+        None.
+
+        """
         super().__init__()
         self.app = app
         self.setupUi(self)
@@ -435,33 +635,38 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
         self.handler = QtHandler(self.update_status)
         self.extra = {'qThreadName': ctname()}
         
-
-        
         # create a formatter and assign it to the handler
         fs = '[%(asctime)s] %(qThreadName)-12s %(levelname)s: %(message)s'
         formatter = logging.Formatter(fs, datefmt='%Y%m%d-%H:%M:%S')
         self.handler.setFormatter(formatter)
         log.addHandler(self.handler)
         
+        # initialize workers and threads dictionaries
         self.workers = {}
         self.worker_threads = {}
         
-        
+        # start the threads and their workers
         self.start_thread()
         
-        self.converter_start_button.clicked.connect(self.workers['Converter'].start)
-        self.converter_start_button.clicked.connect(lambda: self.enable_inputs(False))
-        self.sequence_start_button.clicked.connect(self.workers['Sequence'].start)
-        self.sequence_start_button.clicked.connect(lambda: self.enable_inputs(False))
-        self.join_start_button.clicked.connect(self.workers['Join'].start)
-        self.join_start_button.clicked.connect(lambda: self.enable_inputs(False))
-        
-        
+        # connect all signals and slots                
         self.connectSignalsSlot()
         
         
     def start_thread(self):
+        """
+        Start all the needed threads.
         
+        The program is using a separate thread for each of the three workers plus 
+        another one executing the GUI.
+        
+        A reference of all workers and threads are stored in the self.workers 
+        and self.worker_threads dictionaries.
+
+        Returns
+        -------
+        None.
+
+        """
         worker_list = {
             'Converter' : {
                 'WorkerClassType' : 'ConverterWorker',
@@ -497,6 +702,14 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
         
 
     def kill_thread(self):
+        """
+        Kill all threads.
+
+        Returns
+        -------
+        None.
+
+        """
         for key, thread in self.worker_threads.items():
             if thread.isRunning():
                 thread.quit()
@@ -505,6 +718,13 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
                 log.debug('Thread %s was dead already', key, extra=self.extra)
                 
     def force_quit(self):
+        """
+        Force threads to stop.
+        
+        Returns
+        -------
+        None.
+        """
         #TODO: don't like this implementation
         for thread in self.worker_threads.values() :
             if thread.isRunning():
@@ -514,15 +734,43 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
                 
     @Slot(str, logging.LogRecord)
     def update_status(self, status, record):
+        """
+        Update the status window.
+
+        This is the Qt Slot connected to the QtHandler Signaller. 
+
+        Parameters
+        ----------
+        status : STRING
+            The formatted string to be appended to the message window.
+        record : logging.LogRecord
+            The LogRecord as transmitted by the logging module.
+
+        Returns
+        -------
+        None.
+
+        """
         color = self.COLORS.get(record.levelno, 'black')
         s = '<pre><font color="%s">%s</font></pre>' % (color, status)
         self.messagewindow.appendHtml(s)
         
-    def connectSignalsSlot(self):   
+    def connectSignalsSlot(self):  
+        """Connect all other signals to slots."""
+        # The three start buttons.
+        self.converter_start_button.clicked.connect(self.workers['Converter'].start)
+        self.converter_start_button.clicked.connect(lambda: self.enable_inputs(False))
+        self.sequence_start_button.clicked.connect(self.workers['Sequence'].start)
+        self.sequence_start_button.clicked.connect(lambda: self.enable_inputs(False))
+        self.join_start_button.clicked.connect(self.workers['Join'].start)
+        self.join_start_button.clicked.connect(lambda: self.enable_inputs(False))
+
+        # Connect the about to quit action to the force_quit to kill all threads
         self.app.aboutToQuit.connect(self.force_quit)
     
     
     def converter_open_input_folder(self):
+        """Open a file dialog for the converter input folder."""
         directory = self.converter_input_path_text.text()
         if not directory:
             directory = '.'
@@ -532,6 +780,7 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
             self.converter_validate_start()
             
     def converter_open_output_folder(self):
+        """Open a file dialog for the converter output folder."""
         directory = self.converter_output_path_text.text()
         if not directory:
             directory = '.'
