@@ -1,8 +1,11 @@
-# -*- coding: utf-8 -*-
 """
+The Moviemaker module.
+
+Plesae have a look at the README file for a description of what this module is doing. 
+
 Created on Mon Jun  6 14:55:38 2022
 
-@author: elog-admin
+@author: Antonio Bulgheroni
 """
 
 from PyQt5 import QtCore
@@ -733,7 +736,6 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
         -------
         None.
         """
-        #TODO: don't like this implementation
         for thread in self.worker_threads.values() :
             if thread.isRunning():
                 thread.quit()
@@ -808,7 +810,7 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
         """
         Perform a validation check on the input fieds for the converter tab.
         
-        The start button becomes enabled only in all field (input and output path and file filter)
+        The start button becomes enabled only if all fields (input and output path and file filter)
         are valid. No check is perform on the format since it is taken from a closed list.
         When the start button is enabled, all parameters are transferred to the ConverterWorker
         making it ready for the start.
@@ -868,7 +870,7 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
             self.sequence_validate_start()
 
     def sequence_open_output_file(self):
-        """Open a file dialog for the sequence input folder."""
+        """Open a file dialog for the sequence output folder."""
         directory = self.sequence_output_filename_text.text()
         if not directory:
             directory = '.'
@@ -879,9 +881,30 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
             self.sequence_output_filename_text.setText(returnpath[0])
             self.sequence_validate_start()
 
-        
+    
+    @Slot()
     def sequence_validate_start(self):
+        """
+        Perform a validation check on the input fieds for the sequence tab.
         
+        The start button becomes enabled only in all fields (input and output path and file filter)
+        are valid. No check is perform on the FPS since it is done directly by  the GUI.
+        When the start button is enabled, all parameters are transferred to the SequenceWorker
+        making it ready for the start.
+        
+        The check button is active if input folder and filter are set.
+
+        Note
+        ----
+        
+        This method is a Qt Slot and it is connected with the editing finished signal of the
+        corresponding input filed.
+
+        Returns
+        -------
+        None.
+
+        """
         ok_to_start = True
         ok_to_test = True
         if not self.sequence_image_path_text.text():
@@ -907,16 +930,8 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
                                                       self.sequence_fpb_spin.value())
 
     
-    
-            
-    
-    def sequence_open_temp_folder(self):
-        returnpath = QFileDialog.getExistingDirectory(self, 'Temporary image folder')
-        if returnpath:
-            self.sequence_temporary_folder_text.setText(returnpath)
-            self.sequence_validate_start()
-    
     def sequence_get_imagelist(self, folder, filefilter, display = False):
+        """Print the list of files machng the filter condition."""
         image_list = sorted(list(folder.glob(filefilter)))
         if display:
             log.info('Found a total of %s images in the input folder matching the filter', len(image_list),
@@ -925,21 +940,51 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
                 log.info(img.name,extra=self.extra)
         return image_list
     
-    # def sequence_start(self):
-        
-        
-    #     self.sequence_thread = threading.Thread(target=self.sequence_start_thread)
-    #     self.sequence_thread.start()
+
         
     def enable_inputs(self, status=True):
+        """
+        Turn all inputs ON or OFF.
+        
+        When a worker start its job, it is better to disable all inputs so that the user is not making any changes.
+        This slot is called with status=False when the job starts and with status=True when the job is finished.
+
+        Parameters
+        ----------
+        status : BOOL, optional
+            Switch the inputs on if True or off is False. The default is True.
+
+        Returns
+        -------
+        None.
+
+        """
         self.tab_moviemaker.setEnabled(status)
     
         
     
-    def join_start(self):
-        pass
-    
     def join_validate_start(self):
+        """
+        Perform a validation check on the input fieds for the sequence tab.
+        
+        The start button becomes enabled only in all fields (input and output path and file filter)
+        are valid. No check is perform on the FPS since it is done directly by  the GUI.
+        When the start button is enabled, all parameters are transferred to the SequenceWorker
+        making it ready for the start.
+        
+        The check button is active if input folder and filter are set.
+
+        Note
+        ----
+        
+        This method is a Qt Slot and it is connected with the editing finished signal of the
+        corresponding input filed.
+
+        Returns
+        -------
+        None.
+
+        """
         ok_to_start = True
         if not self.join_video1_path_text.text():
             ok_to_start = ok_to_start and False
@@ -960,6 +1005,12 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
         
     
     def join_open_video1(self):
+        """
+        Open a file dialog for the selection of the first video clip file.
+        
+        The selection is limited to *.mp4 files because it is the only format accepted so far.
+        
+        """
         directory = self.join_video1_path_text.text()
         if not directory:
             directory = '.'
@@ -970,6 +1021,12 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
             self.join_validate_start()
     
     def join_open_video2(self):
+        """
+        Open a file dialog for the selection of the second video clip file.
+        
+        The selection is limited to *.mp4 files because it is the only format accepted so far.
+        
+        """
         directory = self.join_video2_path_text.text()
         if not directory:
             directory = '.'
@@ -979,6 +1036,12 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
             self.join_validate_start()
     
     def join_open_output_video(self):
+        """
+        Open a file dialog for the selection of the output video clip file.
+        
+        The selection is limited to *.mp4 files because it is the only format accepted so far.
+        
+        """
         directory = self.join_outputvideo_path_text.text()
         if not directory:
             directory = '.'
@@ -989,6 +1052,22 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
         
     
 def main():
+    """
+    Start the event loop of the QApplication.
+    
+    The main task is to create a QAppliocation and instanciate a 
+    MovieMakerWindow. 
+    
+    Minor things:
+        1. Adding an AppUserModelID in order to have a nice icon on the taskbar (windows)
+        2. Setting a thread name
+        3. Setting the log leve.
+
+    Returns
+    -------
+    None.
+
+    """
     # to set the icon on the window task bar
     myappid = u'ecjrc.moviemaker.gui.v1.0.0'
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)

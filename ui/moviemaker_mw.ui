@@ -687,8 +687,8 @@
    <slot>sequence_open_input_folder()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>747</x>
-     <y>86</y>
+     <x>120</x>
+     <y>91</y>
     </hint>
     <hint type="destinationlabel">
      <x>521</x>
@@ -703,28 +703,12 @@
    <slot>sequence_open_output_file()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>747</x>
-     <y>146</y>
+     <x>120</x>
+     <y>91</y>
     </hint>
     <hint type="destinationlabel">
      <x>288</x>
      <y>31</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>join_start_button</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>join_start()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>430</x>
-     <y>227</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>460</x>
-     <y>22</y>
     </hint>
    </hints>
   </connection>
@@ -783,8 +767,8 @@
    <slot>sequence_test_filter()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>747</x>
-     <y>116</y>
+     <x>120</x>
+     <y>91</y>
     </hint>
     <hint type="destinationlabel">
      <x>514</x>
@@ -815,8 +799,8 @@
    <slot>sequence_validate_start()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>322</x>
-     <y>99</y>
+     <x>120</x>
+     <y>91</y>
     </hint>
     <hint type="destinationlabel">
      <x>516</x>
@@ -831,8 +815,8 @@
    <slot>sequence_validate_start()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>423</x>
-     <y>130</y>
+     <x>120</x>
+     <y>91</y>
     </hint>
     <hint type="destinationlabel">
      <x>514</x>
@@ -959,8 +943,8 @@
    <slot>sequence_validate_start()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>458</x>
-     <y>191</y>
+     <x>120</x>
+     <y>100</y>
     </hint>
     <hint type="destinationlabel">
      <x>711</x>

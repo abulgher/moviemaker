@@ -8,7 +8,6 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -288,7 +287,6 @@ class Ui_MainWindow(object):
         self.converter_output_format_combobox.setCurrentIndex(0)
         self.sequence_input_open_folder_button.clicked.connect(MainWindow.sequence_open_input_folder)
         self.sequence_output_filename_button.clicked.connect(MainWindow.sequence_open_output_file)
-        self.join_start_button.clicked.connect(MainWindow.join_start)
         self.join_open_video1_button.clicked.connect(MainWindow.join_open_video1)
         self.join_open_video2_button.clicked.connect(MainWindow.join_open_video2)
         self.join_open_output_video_button.clicked.connect(MainWindow.join_open_output_video)
