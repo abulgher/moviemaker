@@ -650,7 +650,15 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
         
         # connect all signals and slots                
         self.connectSignalsSlot()
+    
+    def show(self) :
+        """
+        Show the main windown.
         
+        Overload of the parent show method adding a message in the log window
+        """
+        log.info('Welcome to the Moviemaker GUI.',extra=self.extra)        
+        super().show()
         
     def start_thread(self):
         """
@@ -790,13 +798,34 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
             self.converter_validate_start()   
 
     def converter_test_filter(self):
+        """Print the list of files machng the filter condition."""
         self.sequence_get_imagelist(Path(self.converter_input_path_text.text()),
                                          self.converter_file_filter_text.text(),
                                          display = True)
             
-            
+    @Slot()        
     def converter_validate_start(self):
+        """
+        Perform a validation check on the input fieds for the converter tab.
         
+        The start button becomes enabled only in all field (input and output path and file filter)
+        are valid. No check is perform on the format since it is taken from a closed list.
+        When the start button is enabled, all parameters are transferred to the ConverterWorker
+        making it ready for the start.
+        
+        The check button is active if input folder and filter are set.
+
+        Note
+        ----
+        
+        This method is a Qt Slot and it is connected with the editing finished signal of the
+        corresponding input filed.
+
+        Returns
+        -------
+        None.
+
+        """
         ok_to_start = True
         ok_to_test = True
         if not self.converter_input_path_text.text():
@@ -820,16 +849,16 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
         log.debug('Ready to start the image conversion', extra=self.extra)
     
 
-    def show(self) :
-        log.info('Welcome to the Moviemaker GUI.',extra=self.extra)        
-        super().show()
+
     
     def sequence_test_filter(self):
+        """Print the list of files machng the filter condition."""
         self.sequence_get_imagelist(Path(self.sequence_image_path_text.text()),
                                     self.sequence_image_filter_text.text(), 
                                     display=True)
     
     def sequence_open_input_folder(self):
+        """Open a file dialog for the sequence output folder."""
         directory = self.sequence_image_path_text.text()
         if not directory:
             directory = '.'
@@ -837,6 +866,19 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
         if returnpath:
             self.sequence_image_path_text.setText(returnpath)
             self.sequence_validate_start()
+
+    def sequence_open_output_file(self):
+        """Open a file dialog for the sequence input folder."""
+        directory = self.sequence_output_filename_text.text()
+        if not directory:
+            directory = '.'
+        returnpath = QFileDialog.getSaveFileName(self, 'Output filename for the sequence video',
+                                                      filter='Videos (*.mp4)',
+                                                      directory=directory)
+        if returnpath:
+            self.sequence_output_filename_text.setText(returnpath[0])
+            self.sequence_validate_start()
+
         
     def sequence_validate_start(self):
         
@@ -866,16 +908,6 @@ class MovieMakerWindow(QMainWindow, Ui_MainWindow):
 
     
     
-    def sequence_open_output_file(self):
-        directory = self.sequence_output_filename_text.text()
-        if not directory:
-            directory = '.'
-        returnpath = QFileDialog.getSaveFileName(self, 'Output filename for the sequence video',
-                                                      filter='Videos (*.mp4)',
-                                                      directory=directory)
-        if returnpath:
-            self.sequence_output_filename_text.setText(returnpath[0])
-            self.sequence_validate_start()
             
     
     def sequence_open_temp_folder(self):
