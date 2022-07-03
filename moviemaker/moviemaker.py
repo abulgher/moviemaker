@@ -18,11 +18,12 @@ import moviepy.video.compositing.concatenate
 import moviepy.video.io.ImageSequenceClip
 import moviepy.video.io.VideoFileClip
 import moviepy.video.VideoClip
-from moviemaker_ui import Ui_MainWindow
 from PIL import Image, UnidentifiedImageError
 from proglog import TqdmProgressBarLogger
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow
+
+from moviemaker.moviemaker_ui import Ui_MainWindow
 
 Signal = QtCore.pyqtSignal
 Slot = QtCore.pyqtSlot
