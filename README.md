@@ -1,3 +1,5 @@
+[![Build Python application](https://github.com/abulgher/moviemaker/actions/workflows/python-app.yml/badge.svg)](https://github.com/abulgher/moviemaker/actions/workflows/python-app.yml)
+
 # Moviemaker
 An ultra simple image to movie converter
 
